@@ -1,0 +1,16 @@
+pycg-ml
+Copyright (c) 2026 Maksim Smirnov
+
+This product includes software developed as part of PyCG — Practical Python
+Call Graphs (https://github.com/vitsalis/PyCG), Copyright (c) 2020 Vitalis Salis,
+licensed under the Apache License, Version 2.0.
+
+The upstream repository was archived on 26 November 2023 at commit 8d5dc40.
+pycg-ml continues from that commit as an independent fork; changes made here are
+not endorsed by the original authors.
+
+Changes relative to upstream:
+  - the package is renamed from `pycg` to `pycg_ml` and moved to a src layout;
+    the call-graph entry module `pycg/pycg.py` is now `pycg_ml/generator.py`
+  - packaging moved to uv with a pyproject-only build, Python >= 3.12
+  - upstream's in-package test suite moved to tests/upstream/

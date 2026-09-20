@@ -28,6 +28,7 @@ from pycg_ml.machinery.imports import ImportManager
 from pycg_ml.machinery.key_err import KeyErrors
 from pycg_ml.machinery.modules import ModuleManager
 from pycg_ml.machinery.scopes import ScopeManager
+from pycg_ml.ml_patterns import ml_edges
 from pycg_ml.processing.cgprocessor import CallGraphProcessor
 from pycg_ml.processing.keyerrprocessor import KeyErrProcessor
 from pycg_ml.processing.postprocessor import PostProcessor
@@ -35,9 +36,10 @@ from pycg_ml.processing.preprocessor import PreProcessor
 
 
 class CallGraphGenerator:
-    def __init__(self, entry_points, package, max_iter, operation):
+    def __init__(self, entry_points, package, max_iter, operation, *, ml_patterns=True):
         self.entry_points = entry_points
         self.package = package
+        self.ml_patterns = ml_patterns
         self.state = None
         self.max_iter = max_iter
         self.operation = operation
@@ -215,7 +217,28 @@ class CallGraphGenerator:
             raise Exception("Invalid operation: " + self.operation)
 
     def output(self):
-        return self.cg.get()
+        graph = self.cg.get()
+        if self.ml_patterns:
+            for caller, callees in self._ml_edges().items():
+                graph.setdefault(caller, set()).update(callees)
+        return graph
+
+    def _ml_edges(self):
+        """Edges that tabular ML code declares as data — see pycg_ml.ml_patterns."""
+        found = {}
+        for name, node in self.module_manager.get_internal_modules().items():
+            filename = node.get_filename()
+            if not filename:
+                continue
+            try:
+                with open(filename, encoding="utf-8", errors="replace") as handle:
+                    source = handle.read()
+                module_edges = ml_edges(source, name)
+            except (OSError, SyntaxError, ValueError):
+                continue
+            for caller, callees in module_edges.items():
+                found.setdefault(caller, set()).update(callees)
+        return found
 
     def output_key_errs(self):
         return self.key_errs.get()

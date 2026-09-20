@@ -19,8 +19,11 @@ structural fragility in ML pipelines.
 - Reproduces upstream's results exactly: 106 of 119 micro-benchmark snippets pass,
   the same 13 that upstream fails on Python 3.10 (starred assignment, `map`/`types`
   builtins, decorators, dicts, `eval`, list slices, MRO/`super`).
-- ML-aware patterns are not implemented yet; the fork currently equals upstream in
-  behaviour.
+- Recovers the call edges tabular ML code declares as data rather than writing as
+  calls: a transform handed to `DataFrame.pipe`, the steps of an sklearn `Pipeline`,
+  `ColumnTransformer` or `FeatureUnion`, and evaluation functions and callbacks passed
+  to lightgbm or xgboost. `--no-ml-patterns` returns the plain upstream graph, which
+  keeps the two readings comparable for ablation.
 
 ## Install
 

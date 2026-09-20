@@ -36,6 +36,14 @@ def main():
         default=-1,
     )
     parser.add_argument(
+        "--no-ml-patterns",
+        action="store_true",
+        help=(
+            "Do not add the call edges that sklearn pipelines, pandas .pipe and "
+            "boosting callbacks imply. Gives the plain upstream call graph."
+        ),
+    )
+    parser.add_argument(
         "--operation",
         type=str,
         choices=[CALL_GRAPH_OP, KEY_ERR_OP],
@@ -57,7 +65,11 @@ def main():
     args = parser.parse_args()
 
     cg = CallGraphGenerator(
-        args.entry_point, args.package, args.max_iter, args.operation
+        args.entry_point,
+        args.package,
+        args.max_iter,
+        args.operation,
+        ml_patterns=not args.no_ml_patterns,
     )
     cg.analyze()
 

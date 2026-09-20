@@ -97,7 +97,7 @@ class PostProcessor(ProcessingBase):
                     if not isinstance(item, Definition):
                         continue
                     # return value for generators
-                    for name in self.closured.get(item.get_ns(), []):
+                    for name in sorted(self.closured.get(item.get_ns(), [])):
                         # If there exists a next method on the iterable
                         # and if yes, add a pointer to it
                         next_defi = self.def_manager.get(
@@ -108,7 +108,8 @@ class PostProcessor(ProcessingBase):
                             )
                         )
                         if next_defi:
-                            for name in self.closured.get(next_defi.get_ns(), []):
+                            next_names = self.closured.get(next_defi.get_ns(), [])
+                            for name in sorted(next_names):
                                 target_def.get_name_pointer().add(name)
                         else:  # otherwise, add a pointer to the name
                             # (e.g. a yield)
@@ -152,7 +153,7 @@ class PostProcessor(ProcessingBase):
                 for d in decoded:
                     if not isinstance(d, Definition):
                         continue
-                    for name in self.closured.get(d.get_ns(), []):
+                    for name in sorted(self.closured.get(d.get_ns(), [])):
                         return_ns = utils.join_ns(name, utils.constants.RETURN_NAME)
 
                         if self.closured.get(return_ns, None) is None:
@@ -196,7 +197,10 @@ class PostProcessor(ProcessingBase):
                     names = base_def.get_name_pointer().get()
                 else:
                     names.add(base_def.get_ns())
-                for name in names:
+                # The MRO decides which definition find_cls_fun_ns returns first,
+                # so the order of an over-approximated base has to be fixed
+                # somehow; alphabetical is arbitrary but stable across runs.
+                for name in sorted(names):
                     # add the base as a parent
                     cls.add_parent(name)
 

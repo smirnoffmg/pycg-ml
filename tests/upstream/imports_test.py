@@ -40,7 +40,7 @@ class ImportsTest(TestBase):
         name = "node1"
         im.create_node(name)
         self.assertEqual(im.get_filepath(name), "")
-        self.assertEqual(im.get_imports(name), set())
+        self.assertEqual(im.get_imports(name), [])
 
         # if a node already exists it can't be added again
         with self.assertRaises(ImportManagerError):
@@ -92,7 +92,7 @@ class ImportsTest(TestBase):
         im.set_current_mod(node1, fpath)
         im.create_edge(node2)
 
-        self.assertEqual(im.get_imports(node1), set([node2]))
+        self.assertEqual(im.get_imports(node1), [node2])
 
         # only non empty strings allowed
         with self.assertRaises(ImportManagerError):
@@ -141,11 +141,11 @@ class ImportsTest(TestBase):
         loader = get_custom_loader(im)("node2", "filepath")
 
         # verify that edges and nodes have been added
-        self.assertEqual(im.get_imports("node1"), set(["node2"]))
+        self.assertEqual(im.get_imports("node1"), ["node2"])
         self.assertEqual(im.get_filepath("node2"), os.path.abspath("filepath"))
 
         loader = get_custom_loader(im)("node2", "filepath")
-        self.assertEqual(im.get_imports("node1"), set(["node2"]))
+        self.assertEqual(im.get_imports("node1"), ["node2"])
         self.assertEqual(im.get_filepath("node2"), os.path.abspath("filepath"))
 
         self.assertEqual(loader.get_filename("filepath"), "filepath")
@@ -176,7 +176,7 @@ class ImportsTest(TestBase):
         self.assertEqual(im.handle_import("sys", 0), None)
         self.assertEqual(im.handle_import("sys", 10), None)
 
-        self.assertEqual(im.get_imports("mod1"), set(["sys"]))
+        self.assertEqual(im.get_imports("mod1"), ["sys"])
 
         # test parent package
         class MockImport:

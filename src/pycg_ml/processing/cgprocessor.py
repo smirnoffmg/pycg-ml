@@ -221,7 +221,7 @@ class CallGraphProcessor(ProcessingBase):
         while isinstance(node, ast.Attribute):
             parents = self._retrieve_parent_names(node)
             for parent in parents:
-                for name in self.closured.get(parent, []):
+                for name in sorted(self.closured.get(parent, [])):
                     defi = self.def_manager.get(name)
                     if defi and defi.is_ext_def():
                         return True
@@ -243,7 +243,7 @@ class CallGraphProcessor(ProcessingBase):
 
         defi = self.scope_manager.get_def(self.current_ns, node.id)
         if defi and self.closured.get(defi.get_ns()):
-            for id in self.closured.get(defi.get_ns()):
+            for id in sorted(self.closured.get(defi.get_ns())):
                 names.append(id + "." + name)
 
         return names

@@ -129,9 +129,16 @@ class ImportManager:
         node["filename"] = os.path.abspath(filename)
 
     def get_imports(self, modname):
+        """Sorted, because submodule analysis follows this order.
+
+        The analysis is not confluent: which module is visited first decides
+        which definitions come into being. Left as a set, the order came from
+        string hashing and the same package produced a different call graph on
+        every run. Alphabetical is arbitrary; imports carry no order of their own.
+        """
         if modname not in self.import_graph:
             return []
-        return self.import_graph[modname]["imports"]
+        return sorted(self.import_graph[modname]["imports"])
 
     def _is_init_file(self):
         return self.input_file.endswith("__init__.py")

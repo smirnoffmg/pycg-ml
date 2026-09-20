@@ -167,7 +167,9 @@ class ProcessingBase(ast.NodeVisitor):
         if isinstance(target, ast.Name):
             return [utils.join_ns(self.current_ns, target.id)]
         if isinstance(target, ast.Attribute):
-            bases = self._retrieve_base_names(target)
+            # Definitions are created in this order, and the propagation that
+            # follows is not confluent, so the order has to be fixed.
+            bases = sorted(self._retrieve_base_names(target))
             res = []
             for base in bases:
                 res.append(utils.join_ns(base, target.attr))
@@ -249,7 +251,9 @@ class ProcessingBase(ast.NodeVisitor):
         elif isinstance(node, ast.Attribute):
             names = self._retrieve_attribute_names(node)
             defis = []
-            for name in names:
+            # This order reaches everything downstream, including which external
+            # definitions get created.
+            for name in sorted(names):
                 defi = self.def_manager.get(name)
                 if defi:
                     defis.append(defi)
@@ -304,7 +308,7 @@ class ProcessingBase(ast.NodeVisitor):
             if not name or not isinstance(name, Definition):
                 continue
 
-            for base in self.closured.get(name.get_ns(), []):
+            for base in sorted(self.closured.get(name.get_ns(), [])):
                 cls = self.class_manager.get(base)
                 if not cls:
                     continue
@@ -339,8 +343,8 @@ class ProcessingBase(ast.NodeVisitor):
 
         parent_names = self._retrieve_parent_names(node)
         names = set()
-        for parent_name in parent_names:
-            for name in self.closured.get(parent_name, []):
+        for parent_name in sorted(parent_names):
+            for name in sorted(self.closured.get(parent_name, [])):
                 defi = self.def_manager.get(name)
                 if not defi:
                     continue
@@ -437,7 +441,7 @@ class ProcessingBase(ast.NodeVisitor):
             if isinstance(s, Definition) and self.closured.get(s.get_ns(), None):
                 # we care about the literals pointed by the name
                 # not the namespaces, so retrieve the literals pointed
-                for name in self.closured.get(s.get_ns()):
+                for name in sorted(self.closured.get(s.get_ns())):
                     defi = self.def_manager.get(name)
                     if not defi:
                         continue
@@ -532,7 +536,9 @@ class ProcessingBase(ast.NodeVisitor):
             if parent and parent.get_type() == utils.constants.EXT_DEF:
                 ext_names.add(ns)
 
-        for name in ext_names:
+        # External definitions are created here, and creation order decides the
+        # order of later propagation, which does not converge to one answer.
+        for name in sorted(ext_names):
             self.def_manager.create(name, utils.constants.EXT_DEF)
             self.add_ext_mod_node(name)
         return ext_names

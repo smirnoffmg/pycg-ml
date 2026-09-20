@@ -74,3 +74,26 @@ def test_stdlib_stays_importable_while_hooks_are_installed(tmp_path):
 
     assert result.returncode == 0, result.stderr
     assert json.loads(output.read_text())["main.run"] == ["helpers.scale"]
+
+
+def test_imports_are_returned_in_a_stable_order():
+    """Submodule analysis follows this order, and the analysis is not confluent.
+
+    Left as a set, the order came from string hashing, so the same package gave
+    a different call graph on every run.
+    """
+    from pycg_ml.machinery.imports import ImportManager
+
+    def graph_for(order):
+        manager = ImportManager()
+        manager.set_current_mod("main", "main.py")
+        manager.create_node("main")
+        for name in order:
+            manager.create_edge(name)
+        return manager.get_imports("main")
+
+    forward = graph_for(["zeta", "alpha", "mu"])
+    backward = graph_for(["mu", "zeta", "alpha"])
+
+    assert list(forward) == list(backward)
+    assert list(forward) == ["alpha", "mu", "zeta"]

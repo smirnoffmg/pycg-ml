@@ -170,8 +170,9 @@ class DefinitionManager:
                 # the name pointer of the definition we're currently iterating
                 current_name_pointer = current_def.get_name_pointer()
                 # iterate the names the current definition points to items
-                # for name in current_name_pointer.get():
-                for name in current_name_pointer.get().copy():
+                # This loop has side effects and sets the flag that stops the
+                # propagation, so its order decides which fixpoint is reached.
+                for name in sorted(current_name_pointer.get()):
                     # get the name pointer of the points to name
                     if not self.defs.get(name, None):
                         continue

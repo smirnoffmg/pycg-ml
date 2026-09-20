@@ -18,21 +18,43 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-class Pointer:
+class Revision:
+    """Monotone count of the changes that can alter a transitive closure.
+
+    Every mutation bumps it by one, so a repeated value means the pointer graph
+    is untouched and a closure computed from it still holds.
+    """
+
     def __init__(self):
+        self.value = 0
+
+    def bump(self):
+        self.value += 1
+
+
+class Pointer:
+    def __init__(self, revision=None):
         self.values = set()
+        self.revision = revision
+
+    def _changed(self):
+        if self.revision is not None:
+            self.revision.bump()
 
     def add(self, item):
         self.values.add(item)
+        self._changed()
 
     def add_set(self, s):
         self.values = self.values.union(s)
+        self._changed()
 
     def get(self):
         return self.values
 
     def merge(self, pointer):
         self.values = self.values.union(pointer.values)
+        self._changed()
 
 
 class LiteralPointer(Pointer):
@@ -51,8 +73,8 @@ class LiteralPointer(Pointer):
 
 
 class NamePointer(Pointer):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, revision=None):
+        super().__init__(revision)
         self.pos_to_name = {}
         self.name_to_pos = {}
         self.args = {}

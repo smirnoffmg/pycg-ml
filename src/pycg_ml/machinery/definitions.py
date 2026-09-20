@@ -19,12 +19,15 @@
 # under the License.
 #
 from pycg_ml import utils
-from pycg_ml.machinery.pointers import LiteralPointer, NamePointer
+from pycg_ml.machinery.pointers import LiteralPointer, NamePointer, Revision
 
 
 class DefinitionManager:
     def __init__(self):
         self.defs = {}
+        self.revision = Revision()
+        self._closure = None
+        self._closure_revision = None
 
     def create(self, ns, def_type):
         if not ns or not isinstance(ns, str):
@@ -34,17 +37,22 @@ class DefinitionManager:
         if self.get(ns):
             raise DefinitionError("Definition already exists")
 
-        self.defs[ns] = Definition(ns, def_type)
+        self.defs[ns] = Definition(ns, def_type, self.revision)
+        self.revision.bump()
         return self.defs[ns]
 
     def assign(self, ns, defi):
-        self.defs[ns] = Definition(ns, defi.get_type())
+        self.defs[ns] = Definition(ns, defi.get_type(), self.revision)
+        self.revision.bump()
         self.defs[ns].merge(defi)
 
         # if it is a function def, we need to create a return pointer
         if defi.is_function_def():
             return_ns = utils.join_ns(ns, utils.constants.RETURN_NAME)
-            self.defs[return_ns] = Definition(return_ns, utils.constants.NAME_DEF)
+            self.defs[return_ns] = Definition(
+                return_ns, utils.constants.NAME_DEF, self.revision
+            )
+            self.revision.bump()
             self.defs[return_ns].get_name_pointer().add(
                 utils.join_ns(defi.get_ns(), utils.constants.RETURN_NAME)
             )
@@ -80,6 +88,14 @@ class DefinitionManager:
         return defi
 
     def transitive_closure(self):
+        """Rebuilt only when something it reads has changed.
+
+        Every processor asks for the closure in its constructor, so on a package
+        of any size this used to be recomputed once per module per iteration.
+        """
+        if self._closure is not None and self._closure_revision == self.revision.value:
+            return self._closure
+
         closured = {}
 
         def dfs(defi):
@@ -105,10 +121,12 @@ class DefinitionManager:
             closured[defi.get_ns()] = new_set
             return closured[defi.get_ns()]
 
-        for ns, current_def in self.defs.items():
-            if closured.get(current_def, None) is None:
+        for current_def in self.defs.values():
+            if closured.get(current_def.get_ns()) is None:
                 dfs(current_def)
 
+        self._closure = closured
+        self._closure_revision = self.revision.value
         return closured
 
     def complete_definitions(self):
@@ -192,9 +210,12 @@ class Definition:
         utils.constants.EXT_DEF,
     ]
 
-    def __init__(self, fullns, def_type):
+    def __init__(self, fullns, def_type, revision=None):
         self.fullns = fullns
-        self.points_to = {"lit": LiteralPointer(), "name": NamePointer()}
+        self.points_to = {
+            "lit": LiteralPointer(revision),
+            "name": NamePointer(revision),
+        }
         self.def_type = def_type
 
     def get_type(self):
